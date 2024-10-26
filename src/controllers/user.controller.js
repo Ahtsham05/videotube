@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/Cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import { response } from "express";
+import mongoose from "mongoose";
 
 const generateAccessTokenAndRefreshToken =async (userId)=>{
     // generate access and refresh token here
@@ -331,7 +332,7 @@ const updateCoverImage=promiseHandler(async(req,res)=>{
 
 const getUserChannelProfile = promiseHandler(async(req,res)=>{
     const {username}=req.params.username
-    if(!username){
+    if(!username?.trim()){
         throw new ApiError(401,"Invalid username!")
     }
 
@@ -347,29 +348,31 @@ const getUserChannelProfile = promiseHandler(async(req,res)=>{
                     from:"subscriptions",
                     localField:"_id",
                     foreignField:"channel",
-                    as:"subscribed"
+                    as:"subscribers"
                 }
             },
             {
                 $lookup:{
                     from:"subscriptions",
                     localField:"_id",
-                    foreignField:"subscribers",
+                    foreignField:"subscriber",
                     as:"subscribedTo"
                 }
             },
             {
                 $addFields:{
                     totallSubscribers:{
-                        $size:"$subscribed"
+                        $size:"$subscribers"
                     },
                     totallSubscribed:{
-                        $size:"$subscribedTochannel"
+                        $size:"$subscribedTo"
                     },
                     isSubscribed:{
-                        if: {$in:[req.user?._id,"$subscribed"]},
-                        then:true,
-                        else:false
+                        $cond:{
+                            if: {$in:[req.user?._id,"$subscribers.subscriber"]},
+                            then:true,
+                            else:false
+                        }
                     }
                 }
             },
@@ -389,6 +392,10 @@ const getUserChannelProfile = promiseHandler(async(req,res)=>{
         ]
     )
 
+    if(!channelResult?.length){
+        throw new ApiError(401,"Channel Data Fetching Failed !")
+    }
+
     return res.status(200)
     .json(
         new ApiResponse(
@@ -396,6 +403,54 @@ const getUserChannelProfile = promiseHandler(async(req,res)=>{
             "fetched aggregate record Successfully",
             channelResult[0]
         )
+    )
+})
+
+const getWatchHistory = promiseHandler(async(req,res)=>{
+    const user=await User.aggregate([
+        {
+            $match:{
+                _id:new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullName:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res.status(200).json(
+        new ApiResponse(200,"Watch History Fetched Successfully!",user[0].watchHistory)
     )
 })
 
@@ -409,7 +464,8 @@ export {
     updateAccountDetails,
     updateAvatarImage,
     updateCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }
 
 
