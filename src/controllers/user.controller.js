@@ -329,64 +329,11 @@ const updateCoverImage=promiseHandler(async(req,res)=>{
    }
 })
 
-const channel = promiseHandler(async(req,res)=>{
+const getUserChannelProfile = promiseHandler(async(req,res)=>{
     const {username}=req.params.username
     if(!username){
         throw new ApiError(401,"Invalid username!")
     }
-
-    // const channelResult= await User.aggregate(
-    //     [
-    //         {
-    //             $match:{
-    //                 username:username,
-    //             }
-    //         },
-    //         {
-    //             $lookup:{
-    //                 from:"subscriptions",
-    //                 localField:"_id",
-    //                 foreignField:"subscribers",
-    //                 as:"subscribed"
-    //             }
-    //         },
-    //         {
-    //             $lookup:{
-    //                 from:"subscriptions",
-    //                 localField:"_id",
-    //                 foreignField:"channel",
-    //                 as:"subscribedTochannel"
-    //             }
-    //         },
-    //         {
-    //             $addFields:{
-    //                 TotalSubscribers:{
-    //                     $size:"$subscribed"
-    //                 },
-    //                 TotalSubscribed:{
-    //                     $size:"$subscribedTochannel"
-    //                 },
-    //                 isSubscribed:{
-    //                     $in:[req.user?._id,"$subscribed"]
-    //                 }
-    //             }
-    //         },
-    //         {
-    //             $project:{
-    //                 _id:1,
-    //                 username:1,
-    //                 email:1,
-    //                 fullName:1,
-    //                 avatarImage:1,
-    //                 coverImage:1,
-    //                 TotalSubscribers:1,
-    //                 TotalSubscribed:1,
-    //                 isSubscribed:1,
-    //                 createdAt:1,
-    //             }
-    //         }
-    //     ]
-    // )
 
     const channelResult=await User.aggregate(
         [
@@ -461,7 +408,8 @@ export {
     changeCurrentPassword,
     updateAccountDetails,
     updateAvatarImage,
-    updateCoverImage
+    updateCoverImage,
+    getUserChannelProfile
 }
 
 
