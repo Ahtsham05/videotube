@@ -2,10 +2,11 @@ import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { promiseHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken"
-const jwtverify=promiseHandler(async (req,res,next)=>{
+const jwtverify = promiseHandler(async (req,res,next)=>{
     try {
-        console.log(req)
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+        // console.log(req.cookies);
+        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+
         if (!token) {
             throw new ApiError(401, "Token not provided!");
         }
@@ -13,10 +14,13 @@ const jwtverify=promiseHandler(async (req,res,next)=>{
         if(!decoded){
             throw new ApiError(403,"Invalid token!");
         }
+        // console.log(decoded)
+
         const user = await User.findById(decoded._id).select("-password -refreshToken");
         if (!user) {
             throw new ApiError(404, "User in jwt not found!");
         }
+        // console.log(user)
         req.user = user;
         next();
     } catch (error) {
